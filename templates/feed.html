@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feed</title>
+</head>
+<body>
+    <h1>Your Feed</h1>
+    <p><a href="/">Home</a> | <a href="/profile/{{ current_user.id }}">My Profile</a></p>
+    <ul>
+        {% for post in posts %}
+            <li>
+                <h2>{{ post.title }}</h2>
+                <p>{{ post.content }}</p>
+                {% if post.image_path %}
+                    <img src="{{ post.image_path }}" alt="Post Image" style="max-width: 200px;">
+                {% endif %}
+                <p>Posted by <a href="/profile/{{ post.user_id }}">{{ post.username }}</a></p>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

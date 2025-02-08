@@ -6,6 +6,11 @@
     <title>Simple CRUD App</title>
 </head>
 <body>
+    <p>
+        <a href="/">Home</a> |
+        <a href="/feed">Feed</a> |
+        <a href="/profile/{{ current_user.id }}">My Profile</a>
+    </p>
     <h1>Posts</h1>
     {% if current_user.is_authenticated %}
         <p>Welcome, {{ current_user.username }}! <a href="/logout">Logout</a></p>
@@ -27,21 +32,15 @@
     <ul>
         {% for post in posts %}
             <li>
-                <h2>{{ post.title }}</h2>
-                <p>{{ post.content }}</p>
-                {% if post.image_path %}
-                    <img src="{{ post.image_path }}" alt="Post Image" style="max-width: 200px;">
-                {% endif %}
-                <!-- Form to update a post -->
-                <form action="/update/{{ post.id }}" method="POST" style="display:inline;">
-                    <input type="text" name="title" value="{{ post.title }}" required>
-                    <textarea name="content" required>{{ post.content }}</textarea>
-                    <button type="submit">Update</button>
-                </form>
-                <!-- Form to delete a post -->
-                <form action="/delete/{{ post.id }}" method="GET" style="display:inline;">
-                    <button type="submit">Delete</button>
-                </form>
+                <div style="border: 2px solid #73AD21">
+                    <h2>{{ post.title }}</h2>
+                    <p>{{ post.content }}</p>
+                    <p>Posted by <a href="/profile/{{ post.user_id }}">{{ post.username }}</a></p>
+                    {% if post.image_path %}
+                        <img src="{{ post.image_path }}" alt="Post Image" style="max-width: 200px;">
+                    {% endif %}
+                </div>
+
             </li>
         {% endfor %}
     </ul>

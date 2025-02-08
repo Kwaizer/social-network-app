@@ -64,7 +64,13 @@ def load_user(user_id):
 @app.route('/')
 def index():
     conn = get_db_connection()
-    posts = conn.execute('SELECT * FROM posts').fetchall()
+    # Fetch posts with the username of the author
+    posts = conn.execute('''
+        SELECT p.*, u.username 
+        FROM posts p 
+        JOIN users u ON p.user_id = u.id 
+        ORDER BY p.id DESC
+    ''').fetchall()
     conn.close()
     return render_template('index.html', posts=posts)
 
@@ -153,6 +159,57 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
+@app.route('/follow/<int:user_id>', methods=['POST'])
+@login_required
+def follow(user_id):
+    conn = get_db_connection()
+    conn.execute('INSERT INTO follows (follower_id, followed_id) VALUES (?, ?)', (current_user.id, user_id))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('profile', user_id=user_id))
+
+@app.route('/unfollow/<int:user_id>', methods=['POST'])
+@login_required
+def unfollow(user_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM follows WHERE follower_id = ? AND followed_id = ?', (current_user.id, user_id))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('profile', user_id=user_id))
+
+@app.route('/feed')
+@login_required
+def feed():
+    conn = get_db_connection()
+    # Get posts from users that the current user is following AND the current user's posts
+    posts = conn.execute('''
+        SELECT p.*, u.username 
+        FROM posts p 
+        JOIN users u ON p.user_id = u.id 
+        WHERE p.user_id = ? OR p.user_id IN (
+            SELECT followed_id 
+            FROM follows 
+            WHERE follower_id = ?
+        )
+        ORDER BY p.id DESC
+    ''', (current_user.id, current_user.id)).fetchall()
+    conn.close()
+    return render_template('feed.html', posts=posts)
+
+@app.route('/profile/<int:user_id>')
+@login_required
+def profile(user_id):
+    conn = get_db_connection()
+    # Get user info
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    # Get user's posts
+    posts = conn.execute('SELECT * FROM posts WHERE user_id = ? ORDER BY id DESC', (user_id,)).fetchall()
+    # Check if the current user is following this user
+    is_following = conn.execute('SELECT 1 FROM follows WHERE follower_id = ? AND followed_id = ?',
+                                (current_user.id, user_id)).fetchone() is not None
+    conn.close()
+    return render_template('profile.html', user=user, posts=posts, is_following=is_following)
 
 if __name__ == '__main__':
     init_db()
