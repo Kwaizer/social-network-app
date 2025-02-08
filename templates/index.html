@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple CRUD App</title>
+</head>
+<body>
+    <h1>Posts</h1>
+
+    <!-- Form to create a new post -->
+    <form action="/create" method="POST" enctype="multipart/form-data">
+        <input type="text" name="title" placeholder="Title" required>
+        <textarea name="content" placeholder="Content" required></textarea>
+        <input type="file" name="image" accept="image/*">  <!-- File input -->
+        <button type="submit">Create Post</button>
+    </form>
+
+    <hr>
+
+    <!-- Display all posts -->
+    <ul>
+        {% for post in posts %}
+            <li>
+                <h2>{{ post.title }}</h2>
+                <p>{{ post.content }}</p>
+                {% if post.image_path %}
+                    <img src="{{ post.image_path }}" alt="Post Image" style="max-width: 200px;">
+                {% endif %}
+                <!-- Form to update a post -->
+                <form action="/update/{{ post.id }}" method="POST" style="display:inline;">
+                    <input type="text" name="title" value="{{ post.title }}" required>
+                    <textarea name="content" required>{{ post.content }}</textarea>
+                    <button type="submit">Update</button>
+                </form>
+                <!-- Form to delete a post -->
+                <form action="/delete/{{ post.id }}" method="GET" style="display:inline;">
+                    <button type="submit">Delete</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
