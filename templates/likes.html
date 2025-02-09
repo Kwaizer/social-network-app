@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Likes</title>
+</head>
+<body>
+    <h1>Likes</h1>
+    <ul>
+        {% for like in likes %}
+            <li>{{ like.username }}</li>
+        {% endfor %}
+    </ul>
+    <p><a href="/">Back to Home</a></p>
+</body>
+</html>

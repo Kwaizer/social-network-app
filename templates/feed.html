@@ -11,12 +11,55 @@
     <ul>
         {% for post in posts %}
             <li>
-                <h2>{{ post.title }}</h2>
-                <p>{{ post.content }}</p>
-                {% if post.image_path %}
-                    <img src="{{ post.image_path }}" alt="Post Image" style="max-width: 200px;">
-                {% endif %}
-                <p>Posted by <a href="/profile/{{ post.user_id }}">{{ post.username }}</a></p>
+                <div style="border: 2px solid red;">
+                    <h2>{{ post.title }}</h2>
+                    <p>{{ post.content }}</p>
+                    {% if post.image_path %}
+                        <img src="{{ post.image_path }}" alt="Post Image" style="max-width: 200px;">
+                    {% endif %}
+                    <p>Posted by <a href="/profile/{{ post.user_id }}">{{ post.username }}</a></p>
+
+                    <!-- Like Button -->
+                    <form action="/like/{{ post.id }}" method="POST" style="display:inline;">
+                        <button type="submit">
+                            {% if post.liked %}Unlike{% else %}Like{% endif %}
+                        </button>
+                    </form>
+
+                    <!-- View Likes -->
+                    <a href="/likes/{{ post.id }}">View Likes</a>
+
+                    <!-- Comments Section -->
+                    <h3>Comments</h3>
+                    <ul>
+                        {% for comment in post.comments %}
+                            <li>
+                                <p>{{ comment.content }} - <strong>{{ comment.username }}</strong></p>
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <!-- Add Comment Form -->
+                    {% if current_user.is_authenticated %}
+                        <form action="/comment/{{ post.id }}" method="POST" style="display:inline;">
+                            <textarea name="content" placeholder="Add a comment..." required></textarea>
+                            <button type="submit">Comment</button>
+                        </form>
+                    {% endif %}
+
+                    {% if current_user.is_authenticated and post.user_id == current_user.id %}
+                        <!-- Form to update a post -->
+                        <form action="/update/{{ post.id }}" method="POST" style="display:inline;">
+                            <input type="text" name="title" value="{{ post.title }}" required>
+                            <textarea name="content" required>{{ post.content }}</textarea>
+                            <button type="submit">Update</button>
+                        </form>
+                        <!-- Form to delete a post -->
+                        <form action="/delete/{{ post.id }}" method="GET" style="display:inline;">
+                            <button type="submit">Delete</button>
+                        </form>
+                    {% endif %}
+                </div>
             </li>
         {% endfor %}
     </ul>

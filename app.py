@@ -71,8 +71,27 @@ def index():
         JOIN users u ON p.user_id = u.id 
         ORDER BY p.id DESC
     ''').fetchall()
+
+    # Check if the current user has liked each post and fetch comments
+    posts_with_likes_and_comments = []
+    for post in posts:
+        liked = False
+        if current_user.is_authenticated:
+            liked = conn.execute('SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?',
+                                 (current_user.id, post['id'])).fetchone() is not None
+
+        # Fetch comments for the post
+        comments = conn.execute('''
+            SELECT c.*, u.username 
+            FROM comments c 
+            JOIN users u ON c.user_id = u.id 
+            WHERE c.post_id = ?
+        ''', (post['id'],)).fetchall()
+
+        posts_with_likes_and_comments.append({**post, 'liked': liked, 'comments': comments})
+
     conn.close()
-    return render_template('index.html', posts=posts)
+    return render_template('index.html', posts=posts_with_likes_and_comments)
 
 # Create a new post
 @app.route('/create', methods=['POST'])
@@ -210,6 +229,45 @@ def profile(user_id):
                                 (current_user.id, user_id)).fetchone() is not None
     conn.close()
     return render_template('profile.html', user=user, posts=posts, is_following=is_following)
+
+@app.route('/like/<int:post_id>', methods=['POST'])
+@login_required
+def like(post_id):
+    conn = get_db_connection()
+    # Check if the user has already liked the post
+    like = conn.execute('SELECT * FROM likes WHERE user_id = ? AND post_id = ?', (current_user.id, post_id)).fetchone()
+    if like:
+        # Unlike the post
+        conn.execute('DELETE FROM likes WHERE id = ?', (like['id'],))
+    else:
+        # Like the post
+        conn.execute('INSERT INTO likes (user_id, post_id) VALUES (?, ?)', (current_user.id, post_id))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('index'))
+
+@app.route('/likes/<int:post_id>')
+@login_required
+def get_likes(post_id):
+    conn = get_db_connection()
+    likes = conn.execute('''
+        SELECT u.username 
+        FROM likes l 
+        JOIN users u ON l.user_id = u.id 
+        WHERE l.post_id = ?
+    ''', (post_id,)).fetchall()
+    conn.close()
+    return render_template('likes.html', likes=likes)
+
+@app.route('/comment/<int:post_id>', methods=['POST'])
+@login_required
+def comment(post_id):
+    content = request.form['content']
+    conn = get_db_connection()
+    conn.execute('INSERT INTO comments (user_id, post_id, content) VALUES (?, ?, ?)', (current_user.id, post_id, content))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     init_db()
