@@ -201,7 +201,7 @@ def unfollow(user_id):
 @login_required
 def feed():
     conn = get_db_connection()
-    # Get posts from users that the current user is following AND the current user's posts
+    # Fetch posts from users that the current user is following AND the current user's posts
     posts = conn.execute('''
         SELECT p.*, u.username 
         FROM posts p 
@@ -213,8 +213,16 @@ def feed():
         )
         ORDER BY p.id DESC
     ''', (current_user.id, current_user.id)).fetchall()
+
+    # Check if the current user has liked each post
+    posts_with_likes = []
+    for post in posts:
+        liked = conn.execute('SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?',
+                             (current_user.id, post['id'])).fetchone() is not None
+        posts_with_likes.append({**post, 'liked': liked})
+
     conn.close()
-    return render_template('feed.html', posts=posts)
+    return render_template('feed.html', posts=posts_with_likes)
 
 @app.route('/profile/<int:user_id>')
 @login_required
@@ -227,8 +235,18 @@ def profile(user_id):
     # Check if the current user is following this user
     is_following = conn.execute('SELECT 1 FROM follows WHERE follower_id = ? AND followed_id = ?',
                                 (current_user.id, user_id)).fetchone() is not None
+
+    # Check if the current user has liked each post
+    posts_with_likes = []
+    for post in posts:
+        liked = conn.execute('SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?',
+                             (current_user.id, post['id'])).fetchone() is not None
+        posts_with_likes.append({**post, 'liked': liked})
+
     conn.close()
-    return render_template('profile.html', user=user, posts=posts, is_following=is_following)
+
+    conn.close()
+    return render_template('profile.html', user=user, posts=posts_with_likes, is_following=is_following)
 
 @app.route('/like/<int:post_id>', methods=['POST'])
 @login_required
@@ -244,7 +262,10 @@ def like(post_id):
         conn.execute('INSERT INTO likes (user_id, post_id) VALUES (?, ?)', (current_user.id, post_id))
     conn.commit()
     conn.close()
-    return redirect(url_for('index'))
+
+    # Redirect back to the page specified in the 'next' parameter
+    next_page = request.form.get('next', url_for('index'))
+    return redirect(next_page)
 
 @app.route('/likes/<int:post_id>')
 @login_required

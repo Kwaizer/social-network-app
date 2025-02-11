@@ -22,6 +22,7 @@
 
                     <div class="likes-comments">
                         <form class="likes-form" action="/like/{{ post.id }}" method="POST" style="display:inline;">
+                            <input type="hidden" name="next" value="{{ request.path }}">
                             <button class="like-button" type="submit">
                                 {% if post.liked %}Unlike{% else %}Like{% endif %}
                             </button>
