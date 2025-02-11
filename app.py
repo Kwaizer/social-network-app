@@ -214,15 +214,26 @@ def feed():
         ORDER BY p.id DESC
     ''', (current_user.id, current_user.id)).fetchall()
 
-    # Check if the current user has liked each post
-    posts_with_likes = []
+    # Check if the current user has liked each post and fetch comments
+    posts_with_likes_and_comments = []
     for post in posts:
+        # Check if the current user has liked the post
         liked = conn.execute('SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?',
                              (current_user.id, post['id'])).fetchone() is not None
-        posts_with_likes.append({**post, 'liked': liked})
+
+        # Fetch comments for the post
+        comments = conn.execute('''
+            SELECT c.*, u.username 
+            FROM comments c 
+            JOIN users u ON c.user_id = u.id 
+            WHERE c.post_id = ?
+        ''', (post['id'],)).fetchall()
+
+        # Combine post data with like status and comments
+        posts_with_likes_and_comments.append({**post, 'liked': liked, 'comments': comments})
 
     conn.close()
-    return render_template('feed.html', posts=posts_with_likes)
+    return render_template('feed.html', posts=posts_with_likes_and_comments)
 
 @app.route('/profile/<int:user_id>')
 @login_required
@@ -230,23 +241,34 @@ def profile(user_id):
     conn = get_db_connection()
     # Get user info
     user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+
     # Get user's posts
     posts = conn.execute('SELECT * FROM posts WHERE user_id = ? ORDER BY id DESC', (user_id,)).fetchall()
+
+    # Check if the current user has liked each post and fetch comments
+    posts_with_likes_and_comments = []
+    for post in posts:
+        # Check if the current user has liked the post
+        liked = conn.execute('SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?',
+                             (current_user.id, post['id'])).fetchone() is not None
+
+        # Fetch comments for the post
+        comments = conn.execute('''
+            SELECT c.*, u.username 
+            FROM comments c 
+            JOIN users u ON c.user_id = u.id 
+            WHERE c.post_id = ?
+        ''', (post['id'],)).fetchall()
+
+        # Combine post data with like status and comments
+        posts_with_likes_and_comments.append({**post, 'liked': liked, 'comments': comments})
+
     # Check if the current user is following this user
     is_following = conn.execute('SELECT 1 FROM follows WHERE follower_id = ? AND followed_id = ?',
                                 (current_user.id, user_id)).fetchone() is not None
 
-    # Check if the current user has liked each post
-    posts_with_likes = []
-    for post in posts:
-        liked = conn.execute('SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?',
-                             (current_user.id, post['id'])).fetchone() is not None
-        posts_with_likes.append({**post, 'liked': liked})
-
     conn.close()
-
-    conn.close()
-    return render_template('profile.html', user=user, posts=posts_with_likes, is_following=is_following)
+    return render_template('profile.html', user=user, posts=posts_with_likes_and_comments, is_following=is_following)
 
 @app.route('/like/<int:post_id>', methods=['POST'])
 @login_required
@@ -288,7 +310,10 @@ def comment(post_id):
     conn.execute('INSERT INTO comments (user_id, post_id, content) VALUES (?, ?, ?)', (current_user.id, post_id, content))
     conn.commit()
     conn.close()
-    return redirect(url_for('index'))
+
+    # Redirect back to the page specified in the 'next' parameter
+    next_page = request.form.get('next', url_for('index'))
+    return redirect(next_page)
 
 if __name__ == '__main__':
     init_db()
