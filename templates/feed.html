@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <title>Feed</title>
 </head>
 <body>
@@ -31,7 +32,7 @@
                         <a href="/likes/{{ post.id }}">View Likes</a>
                     </div>
 
-                    <div class="comments" style="border: 2px solid green">
+                    <div class="comments">
                         <h3>Comments</h3>
                             {% for comment in post.comments %}
                                 <div class="comment">
@@ -52,15 +53,19 @@
 
                     {% if current_user.is_authenticated and post.user_id == current_user.id %}
                         <div class="post-actions">
-                            <form class="update-post-form" action="/update/{{ post.id }}" method="POST" style="display:inline;">
-                                <input type="text" name="title" value="{{ post.title }}" required>
-                                <textarea class="update-area" name="content" required>{{ post.content }}</textarea>
-                                <button class="update-button" type="submit">Update</button>
-                            </form>
-                            <!-- Form to delete a post -->
-                            <form class="delete-post-form" class="likes-comments" action="/delete/{{ post.id }}" method="GET" style="display:inline;">
-                                <button class="delete-button" type="submit">Delete</button>
-                            </form>
+                            <div class="dropdown">
+                                <button class="dropdown-toggle"><i class="fas fa-ellipsis-v"></i></button>
+                                <div class="dropdown-content">
+                                    <form action="/update/{{ post.id }}" method="POST">
+                                        <input type="text" name="title" value="{{ post.title }}" required>
+                                        <textarea class="update-area" name="content" required>{{ post.content }}</textarea>
+                                        <button type="submit"><i class="fas fa-edit"></i> Update</button>
+                                    </form>
+                                    <form action="/delete/{{ post.id }}" method="GET">
+                                        <button type="submit"><i class="fas fa-trash"></i> Delete</button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     {% endif %}
                 </div>
